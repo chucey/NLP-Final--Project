@@ -65,6 +65,7 @@ print(df.head(3))
 # df["review_length"].describe()
 
 # df.plot(kind="hist", y="review_length", bins=50, title="Distribution of Review Lengths")
+# df.plot(kind="hist", y="review_stars", bins=5, title="Distribution of Review Stars")
 # plt.show()
 
 # remove the bottom 10 percent of reviews by length
