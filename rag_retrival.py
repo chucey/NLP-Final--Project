@@ -68,7 +68,7 @@ def retrieve_reviews_for_summary(vs: FAISS,
                                  business_name: str = None,
                                  review_stars: int = None,
                                  categories: str = None,
-                                 k: int = 80) -> list[Document]:
+                                 k: int = 80) -> str:
     """
     Retrieves documents from the FAISS vectorstore based on a broad query related to customer experience, food quality, service, atmosphere, value, wait time, and cleanliness. The retrieval can be optionally filtered by business name, review stars, and categories. If metadata filters are provided, the function first attempts to fetch matching documents directly from the FAISS docstore for more reliable results. If no metadata filters are provided or if the direct fetch yields no results, it performs a similarity search using the broad query and then applies metadata filtering in Python to ensure robust matching.
 
@@ -80,7 +80,7 @@ def retrieve_reviews_for_summary(vs: FAISS,
         k (int, optional): The number of documents to return. Defaults to 80.
 
     Returns:
-        list[Document]: a list of Document objects that match the query and metadata filters, limited to k results
+        str: a formatted string containing the retrieved reviews and selected metadata
     """
     metadata_filter = {}
     
@@ -93,31 +93,43 @@ def retrieve_reviews_for_summary(vs: FAISS,
 
     # If metadata is provided, fetch matching docs directly from the FAISS docstore.
     # This is more reliable for summary workloads than semantic pre-filtering.
+    matches = []
     if metadata_filter:
         all_docs = getattr(vs.docstore, "_dict", {}).values()
-        metadata_matches = [doc for doc in all_docs if _doc_matches_filters(doc, metadata_filter)]
-        if metadata_matches:
-            return metadata_matches[:k]
+        matches = [doc for doc in all_docs if _doc_matches_filters(doc, metadata_filter)]
+        if not matches:
+            # broad "summary-oriented" query
+            query = "overall customer experience food quality service atmosphere value wait time cleanliness"
 
-    # broad "summary-oriented" query
-    query = "overall customer experience food quality service atmosphere value wait time cleanliness"
+            # Pull a broader candidate set then apply robust metadata checks in Python.
+            # This avoids empty results from tiny typos/casing differences in exact filter matching.
+            candidate_k = max(k * 8, 100)
+            candidates = vs.similarity_search(query=query, k=candidate_k)
+            matches = [doc for doc in candidates if _doc_matches_filters(doc, metadata_filter)]
 
-    # Pull a broader candidate set then apply robust metadata checks in Python.
-    # This avoids empty results from tiny typos/casing differences in exact filter matching.
-    candidate_k = max(k * 8, 100) if metadata_filter else k
-    candidates = vs.similarity_search(query=query, k=candidate_k)
+    else:
+        # broad "summary-oriented" query
+        query = "overall customer experience food quality service atmosphere value wait time cleanliness"
+        matches = vs.similarity_search(query=query, k=k)
 
-    if not metadata_filter:
-        return candidates[:k]
+    formatted_reviews = [
+        f"Business Name: {doc.metadata.get('business_name')} | Content: {doc.page_content} | Review Stars: {doc.metadata.get('review_stars')}\n---"
+        for doc in matches[:k]
+    ]
+    return "\n\n".join(formatted_reviews)
 
-    filtered = [doc for doc in candidates if _doc_matches_filters(doc, metadata_filter)]
-    return filtered[:k]
+# vs = load_vectorstore()
+# results = retrieve_reviews_for_summary(vs, categories="Italian", k=10)
+# print(results)
 
 # if __name__ == "__main__":
 #     vs = load_vectorstore()
 #     results = retrieve_reviews_for_summary(vs, categories="Italian", k=10)
-#     print(f"Retrieved {len(results)} review chunks")
-#     for doc in results:
-#         print(doc.metadata)
-#         print(doc.page_content[:200])  # print first 200 chars of the review
-#         print("-" * 80)
+#     # print(f"Retrieved {len(results)} review chunks")
+#     print("Sample retrieved document metadata and content:")
+#     print(results)
+#     # print(f"Retrieved {len(results)} review chunks")
+#     # for doc in results:
+#     #     print(doc.metadata)
+#     #     print(doc.page_content[:200])  # print first 200 chars of the review
+#     #     print("-" * 80)
