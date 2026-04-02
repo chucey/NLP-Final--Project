@@ -49,5 +49,5 @@ def build_index(
     vs.save_local(index_dir)
     print(f"Saved {len(chunked_docs)} chunks to {index_dir}")
 
-# if __name__ == "__main__":
-#     build_index("data/sample_reviews_dataset_200.csv")
+if __name__ == "__main__":
+    build_index("data/sample_reviews_dataset_200.csv")
