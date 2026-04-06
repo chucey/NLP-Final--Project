@@ -50,4 +50,4 @@ def build_index(
     print(f"Saved {len(chunked_docs)} chunks to {index_dir}")
 
 if __name__ == "__main__":
-    build_index("data/sample_reviews_dataset_200.csv")
+    build_index("data/all_reviews_dataset.csv")
