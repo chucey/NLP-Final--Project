@@ -1,5 +1,9 @@
 """
 This file contains code for sampling the dataset. It is intended to be used for testing and debugging purposes, as well as for creating smaller subsets of the data for faster experimentation. The code in this file is not meant to be run as part of the main data loading and preprocessing pipeline, but rather as a separate utility for working with the dataset.
+
+*NOTE: The sampling process is random, but a fixed random seed is used to ensure reproducibility. Adjust the sample size as needed for your specific use case.*
+
+Please also run `load.py` before running this file, as it relies on the cleaned and merged dataset saved by that script.
 """
 import pandas as pd
 
