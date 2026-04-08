@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 
 print("Loading data...")
@@ -46,6 +46,8 @@ merged = merged.rename(columns={
 df = merged[[
     "business_id",
     "business_name",
+    "city",
+    "state",
     "categories",
     "review_id",
     "clean_text",
