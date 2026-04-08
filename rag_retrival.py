@@ -66,6 +66,8 @@ def load_vectorstore(index_dir: str ="faiss_yelp") -> FAISS:
 
 def retrieve_reviews_for_summary(vs: FAISS,
                                  business_name: str = None,
+                                 city: str = None,
+                                 state: str = None,
                                  review_stars: int = None,
                                  categories: str = None,
                                  k: int = 80) -> str:
@@ -75,6 +77,8 @@ def retrieve_reviews_for_summary(vs: FAISS,
     Args:
         vs (FAISS): the loaded FAISS vectorstore to search for relevant documents
         business_name (str, optional): The name of the business to filter by. Defaults to None.
+        city (str, optional): The city to filter by. Defaults to None.
+        state (str, optional): The state to filter by. Defaults to None.
         review_stars (int, optional): The number of stars to filter by. Defaults to None.
         categories (str, optional): The categories to filter by. Defaults to None.
         k (int, optional): The number of documents to return. Defaults to 80.
@@ -90,6 +94,10 @@ def retrieve_reviews_for_summary(vs: FAISS,
         metadata_filter["review_stars"] = review_stars
     if categories:
         metadata_filter["categories"] = categories
+    if city:
+        metadata_filter["city"] = city
+    if state:
+        metadata_filter["state"] = state
 
     # If metadata is provided, fetch matching docs directly from the FAISS docstore.
     # This is more reliable for summary workloads than semantic pre-filtering.
@@ -113,7 +121,7 @@ def retrieve_reviews_for_summary(vs: FAISS,
         matches = vs.similarity_search(query=query, k=k)
 
     formatted_reviews = [
-        f"Business Name: {doc.metadata.get('business_name')} | Content: {doc.page_content} | Review Stars: {doc.metadata.get('review_stars')}\n---"
+        f"Business Name: {doc.metadata.get('business_name')} | Content: {doc.page_content} | City: {doc.metadata.get('city')} | State: {doc.metadata.get('state')} | Review Stars: {doc.metadata.get('review_stars')}\n---"
         for doc in matches[:k]
     ]
     return "\n\n".join(formatted_reviews)
