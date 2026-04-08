@@ -11,7 +11,7 @@ def build_index(
     csv_path: str,
     index_dir: str = "faiss_yelp",
     text_col: str = "clean_text",
-    metadata_cols = ("review_id", "business_id", "business_name", "categories", "review_stars", "date") 
+    metadata_cols = ("review_id", "business_id", "business_name","city", "state", "categories", "review_stars", "date") 
 ):
     """Builds a FAISS index from a CSV file containing text data and metadata.
 
@@ -19,7 +19,7 @@ def build_index(
         csv_path (str): Path to the CSV file containing the data.
         index_dir (str, optional): Directory to save the FAISS index. Defaults to "RAG/faiss_yelp".
         text_col (str, optional): Column name for the text data. Defaults to "clean_text".
-        metadata_cols (tuple, optional): Column names for the metadata. Defaults to ("review_id", "business_id", "business_name", "categories", "review_stars", "date").
+        metadata_cols (tuple, optional): Column names for the metadata. Defaults to ("review_id", "business_id", "business_name", "city", "state", "categories", "review_stars", "date").
     """
     df = pd.read_csv(csv_path).dropna(subset=[text_col])
 
@@ -50,4 +50,4 @@ def build_index(
     print(f"Saved {len(chunked_docs)} chunks to {index_dir}")
 
 if __name__ == "__main__":
-    build_index("data/all_reviews_dataset.csv")
+    build_index("data/sample_reviews_dataset_200.csv")
