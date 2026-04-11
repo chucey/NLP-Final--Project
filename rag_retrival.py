@@ -45,7 +45,7 @@ def _doc_matches_filters(doc: Document, metadata_filter: dict) -> bool:
                 return False
     return True
 
-def load_vectorstore(index_dir: str ="faiss_yelp") -> FAISS:
+def load_vectorstore(index_dir: str ="faiss_yelp", model_name: str = "sentence-transformers/all-MiniLM-L6-v2" ) -> FAISS:
     """
     loads a FAISS vectorstore
 
@@ -59,8 +59,8 @@ def load_vectorstore(index_dir: str ="faiss_yelp") -> FAISS:
     hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
     model_kwargs = {"token": hf_token} if hf_token else {}
     emb = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
-        model_kwargs=model_kwargs,
+        model_name= model_name,
+        model_kwargs= model_kwargs,
     )
     return FAISS.load_local(index_dir, emb, allow_dangerous_deserialization=True)
 

@@ -1,10 +1,9 @@
 import os
-
 import pandas as pd
 import json
-
 from langchain_community.vectorstores import FAISS
-
+from build_rag import build_index
+from rag_retrival import load_vectorstore
 
 
 
@@ -116,3 +115,55 @@ def evaluate_model(vs: FAISS):
     print(f"Avg F1 Score:  {avg_f1:.4f}")
 
     return avg_p, avg_r, avg_f1
+
+chunk_sizes = [800, 289, 137, 81]
+
+models_info = [
+    {"name": "sentence-transformers/all-MiniLM-L6-v2", "index_dir_prefix":"st"},
+    {"name": "BAAI/bge-small-en-v1.5" , "index_dir_prefix": "baai"},
+]
+
+# build all model index
+def gene_all_models_index():
+    for model in models_info:
+        model_name = model["name"]
+        prefix = model["index_dir_prefix"]
+
+        for chunk in chunk_sizes:
+            index_dir = f"{prefix}_{chunk}"
+
+            print(f"\nBuilding index: {model_name}, chunk={chunk}")
+
+            build_index(
+                model_name=model_name,
+                chunk_size=chunk,
+                index_dir=index_dir
+            )
+
+
+def evaluate_all_models():
+    results = []
+    for model in models_info:
+        model_name = model["name"]
+        prefix = model["index_dir_prefix"]
+
+        for chunk in chunk_sizes:
+            index_dir = f"{prefix}_{chunk}"
+            print(f"\nEvaluating: {model_name}, chunk={chunk}")
+            vs = load_vectorstore(index_dir=index_dir, model_name=model_name)
+            p, r, f1 = evaluate_model(vs=vs)
+
+            results.append({
+                "model": prefix,
+                "chunk": chunk,
+                "precision": p,
+                "recall": r,
+                "f1": f1
+            })
+
+    # output
+    print("\n===== FINAL RESULTS =====")
+    for row in results:
+        print(row)
+
+    return results
