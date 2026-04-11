@@ -137,7 +137,8 @@ def gene_all_models_index():
             build_index(
                 model_name=model_name,
                 chunk_size=chunk,
-                index_dir=index_dir
+                index_dir=index_dir,
+                chunk_overlap = int(0.15 * chunk),
             )
 
 

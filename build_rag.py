@@ -13,11 +13,13 @@ def build_index(
     index_dir: str = "faiss_yelp",
     chunk_size: int = 800,
     text_col: str = "clean_text",
-    metadata_cols = ("review_id", "business_id", "business_name","city", "state", "categories", "review_stars", "date") 
+    metadata_cols = ("review_id", "business_id", "business_name","city", "state", "categories", "review_stars", "date"),
+    chunk_overlap: int = 120,
 ):
     """Builds a FAISS index from a CSV file containing text data and metadata.
 
     Args:
+        chunk_overlap:
         chunk_size:
         model_name:
         csv_path (str): Path to the CSV file containing the data.
@@ -45,7 +47,7 @@ def build_index(
 
         docs.append(Document(page_content=text, metadata=meta))
 
-    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=120)
+    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     chunked_docs = splitter.split_documents(docs)
 
     embeddings = HuggingFaceEmbeddings(model_name=model_name)
