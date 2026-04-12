@@ -4,6 +4,7 @@ import json
 from langchain_community.vectorstores import FAISS
 from build_rag import build_index
 from rag_retrival import load_vectorstore
+from multiprocessing import Pool, cpu_count
 
 
 
@@ -15,6 +16,8 @@ queries = [
     {"name": "Japanese low rating", "category": "Japanese", "stars": 2},
     {"name": "Thai food", "category": "Thai"}
 ]
+
+evaluation_result_file = "evaluation_results.csv"
 
 def load_ground_truth():
     if os.path.exists(GROUND_TRUTH_FILENAME):
@@ -119,8 +122,26 @@ def evaluate_model(vs: FAISS):
 chunk_sizes = [800, 289, 137, 81]
 
 models_info = [
-    {"name": "sentence-transformers/all-MiniLM-L6-v2", "index_dir_prefix":"st"},
-    {"name": "BAAI/bge-small-en-v1.5" , "index_dir_prefix": "baai"},
+    {
+        "name": "sentence-transformers/all-MiniLM-L6-v2",
+        "index_dir_prefix": "minilm",
+        "description": "Lightweight baseline model, fast but moderate accuracy"
+    },
+    {
+        "name": "BAAI/bge-small-en-v1.5",
+        "index_dir_prefix": "bge_small",
+        "description": "Modern embedding model with better retrieval performance"
+    },
+    {
+        "name": "sentence-transformers/all-mpnet-base-v2",
+        "index_dir_prefix": "mpnet",
+        "description": "Stronger transformer-based embedding, high accuracy"
+    },
+    {
+        "name": "BAAI/bge-base-en-v1.5",
+        "index_dir_prefix": "bge_base",
+        "description": "Larger BGE model, higher quality but slower"
+    },
 ]
 
 # build all model index
@@ -143,10 +164,12 @@ def gene_all_models_index():
 
 
 def evaluate_all_models():
+
     results = []
     for model in models_info:
         model_name = model["name"]
         prefix = model["index_dir_prefix"]
+        describe = model["description"]
 
         for chunk in chunk_sizes:
             index_dir = f"{prefix}_{chunk}"
@@ -155,11 +178,14 @@ def evaluate_all_models():
             p, r, f1 = evaluate_model(vs=vs)
 
             results.append({
-                "model": prefix,
+                "name": model_name,
+                "index_dir": index_dir,
+                "prefix_name": prefix,
                 "chunk": chunk,
                 "precision": p,
                 "recall": r,
-                "f1": f1
+                "f1": f1,
+                "description" : describe,
             })
 
     # output
@@ -168,3 +194,12 @@ def evaluate_all_models():
         print(row)
 
     return results
+
+if __name__ == "__main__":
+
+    gene_all_models_index()
+    results = evaluate_all_models()
+    df = pd.DataFrame(results)
+    df.to_csv(evaluation_result_file, index=False)
+
+    print(f"\nResults saved to {evaluation_result_file}")
