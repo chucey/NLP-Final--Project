@@ -4,7 +4,7 @@ import rag_retrival
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-def load_model(model_name: str, device:str= None) -> tuple[AutoTokenizer, AutoModelForCausalLM]:
+def load_model(model_name: str, device: str = None) -> tuple[AutoTokenizer, AutoModelForCausalLM]:
     """Loads a language model and its tokenizer from Hugging Face."""
     
     print(f"Loading model: {model_name} ...")
@@ -45,43 +45,97 @@ def load_model(model_name: str, device:str= None) -> tuple[AutoTokenizer, AutoMo
     print(f"Model loaded on {resolved_device.upper()} (dtype={dtype})")
     return tok, model
 
-# tok, model = load_model()
+
+# ---------------------------------------------------------------------------
+#  Prompt definition
+# ---------------------------------------------------------------------------
+
+SYSTEM_PROMPT = """\
+You are a professional analyst that summarizes Yelp reviews. You MUST follow these rules strictly:
+
+RULES:
+1. ONLY use information found in the reviews provided by the user. Do NOT invent, fabricate, or assume any details.
+2. If the reviews do not contain enough information for a section, explicitly state "Not enough data."
+3. Representative quotes MUST be taken verbatim from the reviews. Do NOT paraphrase or create fake quotes.
+4. Do NOT hallucinate business names, reviewer names, menu items, or any other details not present in the reviews.
+5. If no reviews are provided, respond ONLY with: "No reviews found for the given criteria."
+
+OUTPUT FORMAT (you must follow this structure exactly):
+
+## Overall Sentiment
+[positive / mixed / negative] — one sentence explanation
+
+## Top Praised Themes
+- [theme 1]: brief explanation with evidence from reviews
+- [theme 2]: brief explanation with evidence from reviews
+- [theme 3]: brief explanation with evidence from reviews
+
+## Top Complaints
+- [complaint 1]: brief explanation with evidence from reviews
+- [complaint 2]: brief explanation with evidence from reviews
+- [complaint 3]: brief explanation with evidence from reviews
+
+## Representative Quotes
+1. "[exact quote from a review]"
+2. "[exact quote from a review]"
+3. "[exact quote from a review]"
+
+## Confidence Level
+[low / medium / high] — based on the number and consistency of reviews analyzed\
+"""
+
 
 def summarize_reviews(docs: str, tok: AutoTokenizer, model: AutoModelForCausalLM) -> str:
+    """Generates a structured summary of Yelp reviews using the loaded LLM.
     
-    system_prompt = f"""You are a helpful assistant for summarizing Yelp reviews. Your task is to analyze the provided reviews and generate concise summaries that capture the key themes, sentiments, and representative quotes from the reviews. Focus on providing aoverall sentiment while ensuring that your summaries are grounded in the actual content of the reviews.
+    Args:
+        docs (str): A formatted string containing retrieved reviews from the RAG system.
+                     This is the output of retrieve_reviews_for_summary().
+        tok (AutoTokenizer): The tokenizer for the loaded model.
+        model (AutoModelForCausalLM): The loaded language model.
 
-    Here are the reviews you must summarize:
-    {docs}
-
-    When summarizing, consider the following aspects:
-    1) Top praised themes: Identify common positive aspects mentioned across the reviews (e.g., great service, delicious food, cozy atmosphere).
-    2) Top complaints: Highlight recurring negative themes (e.g., long wait times, poor customer service, high prices).
-    3) Sentiment: Determine the overall sentiment of the reviews (positive, mixed, or negative).
-    4) Representative quotes: Select 3 short quotes from the reviews that exemplify the overall sentiment and key themes.
-    5) Confidence: Assess the confidence level of your summary based on the consistency and clarity of the reviews (low, medium, high).
-    
-    You must format your summary in a clear and structured manner, ensuring that it is concise and directly reflects the content of the reviews. Avoid making assumptions or adding information that is not present in the reviews. Your goal is to provide an accurate and insightful summary that can help business owners understand their customers' experiences and identify areas for improvement.
+    Returns:
+        str: A structured summary of the reviews, or a "no reviews found" message if docs is empty.
     """
 
-    conversation = (
-    f"<|system|>\n{system_prompt}\n"
-    f"<|assistant|>\n")
+    # --- Handle empty RAG results ---
+    if not docs or not docs.strip():
+        return "No reviews found for the given criteria."
+
+    # --- Build user prompt with the reviews ---
+    user_prompt = f"Please summarize the following Yelp reviews:\n\n{docs}"
+
+    # --- Use the tokenizer's built-in chat template (ChatML for Qwen3) ---
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_prompt},
+    ]
     
+    conversation = tok.apply_chat_template(
+        messages, 
+        tokenize=False, 
+        add_generation_prompt=True,
+        enable_thinking=False,  # disable thinking mode for direct output
+    )
+
     inputs = tok(conversation, return_tensors="pt")
     inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
     with torch.no_grad():
         outputs = model.generate(
             **inputs,
-            max_new_tokens=700,
+            max_new_tokens=1024,
             do_sample=True,
-            temperature=0.6,
-            top_p=0.9,
+            temperature=0.3,
+            top_p=0.85,
+            repetition_penalty=1.15,
             eos_token_id=tok.eos_token_id,
         )
         # Decode only the new tokens generated by the model
-        response = tok.decode(outputs[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+        response = tok.decode(
+            outputs[0, inputs["input_ids"].shape[1]:], 
+            skip_special_tokens=True
+        ).strip()
     return response
 
 
