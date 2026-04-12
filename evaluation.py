@@ -4,7 +4,7 @@ import json
 from langchain_community.vectorstores import FAISS
 from build_rag import build_index
 from rag_retrival import load_vectorstore
-from multiprocessing import Pool, cpu_count
+
 
 
 
@@ -70,7 +70,7 @@ def load_ground_truth():
     return ground_truth
 
 
-def evaluate_model(vs: FAISS):
+def evaluate_model(vs: FAISS, k: int = 50 ):
     print("\n===== Running Evaluation =====\n")
 
     ground_truth = load_ground_truth()
@@ -79,7 +79,7 @@ def evaluate_model(vs: FAISS):
     for query_name, gt_ids in ground_truth.items():
 
         # 1. retrieval（query）
-        docs = vs.similarity_search(query_name, k=50)
+        docs = vs.similarity_search(query_name, k= k )
 
         # 2. get review_id
         retrieved_ids = set(
@@ -120,7 +120,7 @@ def evaluate_model(vs: FAISS):
     return avg_p, avg_r, avg_f1
 
 chunk_sizes = [800, 289, 137, 81]
-
+doc_nums = [50, 200]
 models_info = [
     {
         "name": "sentence-transformers/all-MiniLM-L6-v2",
@@ -175,18 +175,20 @@ def evaluate_all_models():
             index_dir = f"{prefix}_{chunk}"
             print(f"\nEvaluating: {model_name}, chunk={chunk}")
             vs = load_vectorstore(index_dir=index_dir, model_name=model_name)
-            p, r, f1 = evaluate_model(vs=vs)
+            for num in doc_nums:
+                p, r, f1 = evaluate_model(vs=vs,k=num)
 
-            results.append({
-                "name": model_name,
-                "index_dir": index_dir,
-                "prefix_name": prefix,
-                "chunk": chunk,
-                "precision": p,
-                "recall": r,
-                "f1": f1,
-                "description" : describe,
-            })
+                results.append({
+                    "name": model_name,
+                    "index_dir": index_dir,
+                    "prefix_name": prefix,
+                    "chunk": chunk,
+                    "doc_num": num,
+                    "precision": p,
+                    "recall": r,
+                    "f1": f1,
+                    "description" : describe,
+                })
 
     # output
     print("\n===== FINAL RESULTS =====")
