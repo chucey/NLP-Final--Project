@@ -146,7 +146,7 @@ queries = [
     },
     {
         "name": "Thai restaurants in LA with high ratings",
-        "query": "customer reviews of highly rated Thai restaurants in Louisiana with ratings above 4 stars",
+        "query": "customer reviews of highly rated Thai restaurants in LA (Louisiana) with ratings above 4 stars",
         "categories": "Thai",
         "state": "LA",
         "review_stars": {"op": "gte", "value": 4}
