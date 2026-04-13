@@ -141,3 +141,92 @@ def retrieve_reviews_for_summary(vs: FAISS,
 #     #     print(doc.metadata)
 #     #     print(doc.page_content[:200])  # print first 200 chars of the review
 #     #     print("-" * 80)
+
+
+def _doc_matches_filters1 (doc: Document, metadata_filter: dict) -> bool:
+
+    for key, expected in metadata_filter.items():
+        actual = doc.metadata.get(key)
+
+        if actual is None:
+            return False
+
+        # ===== dict =====
+        if isinstance(expected, dict):
+            try:
+                actual = float(actual)
+            except:
+                return False
+            op = expected.get("op")
+            val = expected.get("value")
+
+            if op == "lt":
+                if not (actual < val):
+                    return False
+            elif op == "lte":
+                if not (actual <= val):
+                    return False
+            elif op == "gt":
+                if not (actual > val):
+                    return False
+            elif op == "gte":
+                if not (actual >= val):
+                    return False
+            elif op == "eq":
+                if not (actual == val):
+                    return False
+
+        # ===== str =====
+        elif isinstance(expected, str):
+            if key == "categories":
+                if _normalize(expected) not in _normalize(actual):
+                    return False
+            else:
+                if _normalize(expected) != _normalize(actual):
+                    return False
+
+        # ===== num =====
+        else:
+            if actual != expected:
+                return False
+
+    return True
+
+def retrieve_reviews(vs: FAISS,
+                     query: str = None,
+                     metadata_filter: dict = None,
+                     k: int = 80
+                     ) -> set[str]:
+    """
+    Retrieves documents from the FAISS vectorstore based on a broad query related to customer experience, food quality, service, atmosphere, value, wait time, and cleanliness. The retrieval can be optionally filtered by business name, review stars, and categories. If metadata filters are provided, the function first attempts to fetch matching documents directly from the FAISS docstore for more reliable results. If no metadata filters are provided or if the direct fetch yields no results, it performs a similarity search using the broad query and then applies metadata filtering in Python to ensure robust matching.
+
+    Args:
+        metadata_filter:
+        query:
+        vs (FAISS): the loaded FAISS vectorstore to search for relevant documents
+        k (int, optional): The number of documents to return. Defaults to 80.
+
+    Returns:
+        set[str]: a formatted string containing the retrieved reviews and selected metadata
+    """
+
+    if metadata_filter:
+        candidate_k = max(k * 5, 100)
+    else:
+        candidate_k = k
+    candidates = vs.similarity_search(query=query, k=candidate_k)
+    if metadata_filter:
+        matches = [
+            doc for doc in candidates
+            if _doc_matches_filters1(doc, metadata_filter)
+        ]
+    else:
+        matches = candidates
+
+    review_ids = {
+        doc.metadata.get("review_id")
+        for doc in matches[:k]
+        if doc.metadata.get("review_id") is not None
+    }
+
+    return review_ids

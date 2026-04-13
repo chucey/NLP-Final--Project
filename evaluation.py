@@ -4,20 +4,106 @@ import json
 from langchain_community.vectorstores import FAISS
 from build_rag import build_index
 from rag_retrival import load_vectorstore
+import rag_retrival
 
 
 
 
 GROUND_TRUTH_FILENAME = "ground_truth.json"
 queries = [
-    {"name": "Italian in Las Vegas", "category": "Italian", "city": "Las Vegas"},
-    {"name": "Chinese 5 stars", "category": "Chinese", "stars": 5},
-    {"name": "Mexican in Phoenix", "category": "Mexican", "city": "Phoenix"},
-    {"name": "Japanese low rating", "category": "Japanese", "stars": 2},
-    {"name": "Thai food", "category": "Thai"}
+
+    # 1. City + Category（基础语义）
+    {"name": "Italian restaurants in New Orleans", "categories": "Italian", "city": "New Orleans"},
+    {"name": "Chinese restaurants in Philadelphia", "categories": "Chinese", "city": "Philadelphia"},
+    {"name": "Mexican restaurants in Edmonton", "categories": "Mexican", "city": "Edmonton"},
+    {"name": "Japanese restaurants in Nashville", "categories": "Japanese", "city": "Nashville"},
+    {"name": "Thai restaurants in Philadelphia", "categories": "Thai", "city": "Philadelphia"},
+
+    # 2. Category only（纯语义）
+    {"name": "Italian restaurants", "categories": "Italian"},
+    {"name": "Chinese restaurants", "categories": "Chinese"},
+    {"name": "Mexican restaurants", "categories": "Mexican"},
+    {"name": "Japanese restaurants", "categories": "Japanese"},
+    {"name": "Thai restaurants", "categories": "Thai"},
+
+    #  3. State + Category（中等难度）
+    {"name": "Italian restaurants in PA", "categories": "Italian", "state": "PA"},
+    {"name": "Chinese restaurants in NV", "categories": "Chinese", "state": "NV"},
+    {"name": "Mexican restaurants in AZ", "categories": "Mexican", "state": "AZ"},
+
+    # 4. Exact rating（高 precision 场景）
+    {"name": "Chinese restaurants with 5 star reviews", "categories": "Chinese", "review_stars": 5},
+    {"name": "Italian restaurants with 4 star reviews", "categories": "Italian", "review_stars": 4},
+
+    # 5. Range filter（难）
+    {"name": "Japanese restaurants with low ratings", "categories": "Japanese", "review_stars": {"op": "lt", "value": 3}},
+    {"name": "Mexican restaurants with high ratings", "categories": "Mexican", "review_stars": {"op": "gte", "value": 4}},
+
+    # 6. City + Rating（组合难度）
+    {"name": "Chinese restaurants in Nashville with 5 stars", "categories": "Chinese", "city": "Nashville", "review_stars": 5},
+    {"name": "Italian restaurants in New Orleans with high ratings", "categories": "Italian", "city": "New Orleans", "review_stars": {"op": "gte", "value": 4}},
+
+    #  7. Hard（多条件 ）
+    {"name": "Japanese restaurants in PA with low ratings", "categories": "Japanese", "state": "PA", "review_stars": {"op": "lt", "value": 3}},
+    {"name": "Thai restaurants in LA with high ratings", "categories": "Thai", "state": "LA", "review_stars": {"op": "gte", "value": 4}},
 ]
 
 evaluation_result_file = "evaluation_results.csv"
+
+def apply_metadata_filter_df(df, metadata_filter):
+    df_filtered = df.copy()
+
+    for k, v in metadata_filter.items():
+
+        if k not in df_filtered.columns:
+            continue
+
+        col = df_filtered[k]
+
+        # ===== 情况1：operator（最重要）=====
+        if isinstance(v, dict):
+            op = v.get("op")
+            val = v.get("value")
+
+            # 强制转 numeric（防止 string 类型）
+            col_numeric = pd.to_numeric(col, errors="coerce")
+
+            if op == "lt":
+                df_filtered = df_filtered[col_numeric < val]
+            elif op == "lte":
+                df_filtered = df_filtered[col_numeric <= val]
+            elif op == "gt":
+                df_filtered = df_filtered[col_numeric > val]
+            elif op == "gte":
+                df_filtered = df_filtered[col_numeric >= val]
+            elif op == "eq":
+                df_filtered = df_filtered[col_numeric == val]
+
+        # ===== 情况2：字符串 =====
+        elif isinstance(v, str):
+
+            if k == "categories":
+                df_filtered = df_filtered[
+                    col.astype(str)
+                       .str.strip()
+                       .str.lower()
+                       .str.contains(v.strip().lower(), na=False)
+                ]
+            else:
+                df_filtered = df_filtered[
+                    col.astype(str)
+                       .str.strip()
+                       .str.lower()
+                       == v.strip().lower()
+                ]
+
+        # ===== 情况3：普通数值 =====
+        else:
+            # 同样做安全转换
+            col_numeric = pd.to_numeric(col, errors="coerce")
+            df_filtered = df_filtered[col_numeric == v]
+
+    return df_filtered
 
 def load_ground_truth():
     if os.path.exists(GROUND_TRUTH_FILENAME):
@@ -41,19 +127,10 @@ def load_ground_truth():
     ground_truth = {}
 
     for q in queries:
+        metadata = q.copy()
+        metadata.pop("name")
         df_filtered = df.copy()
-
-        if "category" in q:
-            df_filtered = df_filtered[
-                df_filtered["categories"].str.contains(q["category"], na=False)
-            ]
-
-        if "city" in q and "city" in df.columns:
-            df_filtered = df_filtered[df_filtered["city"] == q["city"]]
-
-        if "stars" in q:
-            df_filtered = df_filtered[df_filtered["review_stars"] == q["stars"]]
-
+        df_filtered = apply_metadata_filter_df(df_filtered, metadata)
         ids = set(df_filtered["review_id"])
 
         ground_truth[q["name"]] = ids
@@ -70,23 +147,29 @@ def load_ground_truth():
     return ground_truth
 
 
-def evaluate_model(vs: FAISS, k: int = 50 ):
+def evaluate_model(vs: FAISS, k: int = 50 , use_filter: bool = False , ground_truth=None ):
     print("\n===== Running Evaluation =====\n")
 
-    ground_truth = load_ground_truth()
+
     results = []
 
     for query_name, gt_ids in ground_truth.items():
 
         # 1. retrieval（query）
-        docs = vs.similarity_search(query_name, k= k )
+        metadata_filter = {}
+        if use_filter :
+            match = next((q for q in queries if q["name"] == query_name), None)
 
-        # 2. get review_id
-        retrieved_ids = set(
-            doc.metadata["review_id"]
-            for doc in docs
-            if "review_id" in doc.metadata
-        )
+            if match is None:
+                print("Warning: skipping " + query_name + ", not in queries. You should update ground truth.")
+                continue
+
+            metadata_filter = match.copy()
+            metadata_filter.pop("name")
+
+
+
+        retrieved_ids = rag_retrival.retrieve_reviews(vs,query_name, metadata_filter, k)
 
         # 3. calculate
         correct = gt_ids & retrieved_ids
@@ -144,6 +227,7 @@ models_info = [
     },
 ]
 
+
 # build all model index
 def gene_all_models_index():
     for model in models_info:
@@ -164,7 +248,7 @@ def gene_all_models_index():
 
 
 def evaluate_all_models():
-
+    ground_truth = load_ground_truth()
     results = []
     for model in models_info:
         model_name = model["name"]
@@ -176,12 +260,27 @@ def evaluate_all_models():
             print(f"\nEvaluating: {model_name}, chunk={chunk}")
             vs = load_vectorstore(index_dir=index_dir, model_name=model_name)
             for num in doc_nums:
-                p, r, f1 = evaluate_model(vs=vs,k=num)
+                p, r, f1 = evaluate_model(vs=vs,k=num, use_filter=True, ground_truth= ground_truth)
 
                 results.append({
                     "name": model_name,
                     "index_dir": index_dir,
                     "prefix_name": prefix,
+                    "use_filter": True,
+                    "chunk": chunk,
+                    "doc_num": num,
+                    "precision": p,
+                    "recall": r,
+                    "f1": f1,
+                    "description" : describe,
+                })
+                p, r, f1 = evaluate_model(vs=vs,k=num, use_filter=False, ground_truth= ground_truth)
+
+                results.append({
+                    "name": model_name,
+                    "index_dir": index_dir,
+                    "prefix_name": prefix,
+                    "use_filter": False,
                     "chunk": chunk,
                     "doc_num": num,
                     "precision": p,
