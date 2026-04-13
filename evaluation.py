@@ -13,39 +13,144 @@ GROUND_TRUTH_FILENAME = "ground_truth.json"
 queries = [
 
     # 1. City + Category（基础语义）
-    {"name": "Italian restaurants in New Orleans", "categories": "Italian", "city": "New Orleans"},
-    {"name": "Chinese restaurants in Philadelphia", "categories": "Chinese", "city": "Philadelphia"},
-    {"name": "Mexican restaurants in Edmonton", "categories": "Mexican", "city": "Edmonton"},
-    {"name": "Japanese restaurants in Nashville", "categories": "Japanese", "city": "Nashville"},
-    {"name": "Thai restaurants in Philadelphia", "categories": "Thai", "city": "Philadelphia"},
+    {
+        "name": "Italian restaurants in New Orleans",
+        # query ：nature language
+        "query": "customer reviews about Italian restaurants in New Orleans focusing on food quality and service",
+        "categories": "Italian",
+        "city": "New Orleans"
+    },
+    {
+        "name": "Chinese restaurants in Philadelphia",
+        "query": "reviews of Chinese restaurants in Philadelphia including food and service experience",
+        "categories": "Chinese",
+        "city": "Philadelphia"
+    },
+    {
+        "name": "Mexican restaurants in Edmonton",
+        "query": "customer reviews about Mexican restaurants in Edmonton and overall dining experience",
+        "categories": "Mexican",
+        "city": "Edmonton"
+    },
+    {
+        "name": "Japanese restaurants in Nashville",
+        "query": "reviews of Japanese restaurants in Nashville focusing on food quality and service",
+        "categories": "Japanese",
+        "city": "Nashville"
+    },
+    {
+        "name": "Thai restaurants in Philadelphia",
+        "query": "customer reviews about Thai restaurants in Philadelphia and customer experience",
+        "categories": "Thai",
+        "city": "Philadelphia"
+    },
 
     # 2. Category only（纯语义）
-    {"name": "Italian restaurants", "categories": "Italian"},
-    {"name": "Chinese restaurants", "categories": "Chinese"},
-    {"name": "Mexican restaurants", "categories": "Mexican"},
-    {"name": "Japanese restaurants", "categories": "Japanese"},
-    {"name": "Thai restaurants", "categories": "Thai"},
+    {
+        "name": "Italian restaurants",
+        "query": "customer reviews about Italian restaurants including food quality and service",
+        "categories": "Italian"
+    },
+    {
+        "name": "Chinese restaurants",
+        "query": "reviews about Chinese restaurants and dining experience",
+        "categories": "Chinese"
+    },
+    {
+        "name": "Mexican restaurants",
+        "query": "customer reviews of Mexican restaurants focusing on food and service",
+        "categories": "Mexican"
+    },
+    {
+        "name": "Japanese restaurants",
+        "query": "reviews about Japanese restaurants including food quality and service experience",
+        "categories": "Japanese"
+    },
+    {
+        "name": "Thai restaurants",
+        "query": "customer reviews about Thai restaurants and overall dining experience",
+        "categories": "Thai"
+    },
 
-    #  3. State + Category（中等难度）
-    {"name": "Italian restaurants in PA", "categories": "Italian", "state": "PA"},
-    {"name": "Chinese restaurants in NV", "categories": "Chinese", "state": "NV"},
-    {"name": "Mexican restaurants in AZ", "categories": "Mexican", "state": "AZ"},
+    # 3. State + Category
+    {
+        "name": "Italian restaurants in PA",
+        "query": "customer reviews about Italian restaurants in Pennsylvania focusing on food and service",
+        "categories": "Italian",
+        "state": "PA"
+    },
+    {
+        "name": "Chinese restaurants in NV",
+        "query": "reviews of Chinese restaurants in Nevada including customer experience",
+        "categories": "Chinese",
+        "state": "NV"
+    },
+    {
+        "name": "Mexican restaurants in AZ",
+        "query": "customer reviews about Mexican restaurants in Arizona and food quality",
+        "categories": "Mexican",
+        "state": "AZ"
+    },
 
-    # 4. Exact rating（高 precision 场景）
-    {"name": "Chinese restaurants with 5 star reviews", "categories": "Chinese", "review_stars": 5},
-    {"name": "Italian restaurants with 4 star reviews", "categories": "Italian", "review_stars": 4},
+    # 4. Exact rating
+    {
+        "name": "Chinese restaurants with 5 star reviews",
+        "query": "customer reviews of highly rated Chinese restaurants with 5 star ratings",
+        "categories": "Chinese",
+        "review_stars": 5
+    },
+    {
+        "name": "Italian restaurants with 4 star reviews",
+        "query": "reviews of Italian restaurants with 4 star ratings and good customer experience",
+        "categories": "Italian",
+        "review_stars": 4
+    },
 
-    # 5. Range filter（难）
-    {"name": "Japanese restaurants with low ratings", "categories": "Japanese", "review_stars": {"op": "lt", "value": 3}},
-    {"name": "Mexican restaurants with high ratings", "categories": "Mexican", "review_stars": {"op": "gte", "value": 4}},
+    # 5. Range filter
+    {
+        "name": "Japanese restaurants with low ratings",
+        "query": "customer reviews of poorly rated Japanese restaurants with low ratings below 3 stars",
+        "categories": "Japanese",
+        "review_stars": {"op": "lt", "value": 3}
+    },
+    {
+        "name": "Mexican restaurants with high ratings",
+        "query": "customer reviews of highly rated Mexican restaurants with ratings above 4 stars",
+        "categories": "Mexican",
+        "review_stars": {"op": "gte", "value": 4}
+    },
 
-    # 6. City + Rating（组合难度）
-    {"name": "Chinese restaurants in Nashville with 5 stars", "categories": "Chinese", "city": "Nashville", "review_stars": 5},
-    {"name": "Italian restaurants in New Orleans with high ratings", "categories": "Italian", "city": "New Orleans", "review_stars": {"op": "gte", "value": 4}},
+    # 6. City + Rating
+    {
+        "name": "Chinese restaurants in Nashville with 5 stars",
+        "query": "customer reviews of 5 star Chinese restaurants in Nashville with great food and service",
+        "categories": "Chinese",
+        "city": "Nashville",
+        "review_stars": 5
+    },
+    {
+        "name": "Italian restaurants in New Orleans with high ratings",
+        "query": "customer reviews of highly rated Italian restaurants in New Orleans with great dining experience",
+        "categories": "Italian",
+        "city": "New Orleans",
+        "review_stars": {"op": "gte", "value": 4}
+    },
 
-    #  7. Hard（多条件 ）
-    {"name": "Japanese restaurants in PA with low ratings", "categories": "Japanese", "state": "PA", "review_stars": {"op": "lt", "value": 3}},
-    {"name": "Thai restaurants in LA with high ratings", "categories": "Thai", "state": "LA", "review_stars": {"op": "gte", "value": 4}},
+    # 7. Hard（多条件）
+    {
+        "name": "Japanese restaurants in PA with low ratings",
+        "query": "customer reviews of poorly rated Japanese restaurants in Pennsylvania with ratings below 3 stars",
+        "categories": "Japanese",
+        "state": "PA",
+        "review_stars": {"op": "lt", "value": 3}
+    },
+    {
+        "name": "Thai restaurants in LA with high ratings",
+        "query": "customer reviews of highly rated Thai restaurants in LA (Louisiana) with ratings above 4 stars",
+        "categories": "Thai",
+        "state": "LA",
+        "review_stars": {"op": "gte", "value": 4}
+    },
 ]
 
 evaluation_result_file = "evaluation_results.csv"
@@ -129,6 +234,7 @@ def load_ground_truth():
     for q in queries:
         metadata = q.copy()
         metadata.pop("name")
+        metadata.pop("query")
         df_filtered = df.copy()
         df_filtered = apply_metadata_filter_df(df_filtered, metadata)
         ids = set(df_filtered["review_id"])
@@ -157,19 +263,20 @@ def evaluate_model(vs: FAISS, k: int = 50 , use_filter: bool = False , ground_tr
 
         # 1. retrieval（query）
         metadata_filter = {}
+        match = next((q for q in queries if q["name"] == query_name), None)
+
+        if match is None:
+            print("Warning: skipping " + query_name + ", not in queries. You should update ground truth.")
+            continue
+        query = match["query"]
         if use_filter :
-            match = next((q for q in queries if q["name"] == query_name), None)
-
-            if match is None:
-                print("Warning: skipping " + query_name + ", not in queries. You should update ground truth.")
-                continue
-
             metadata_filter = match.copy()
             metadata_filter.pop("name")
+            metadata_filter.pop("query")
 
 
 
-        retrieved_ids = rag_retrival.retrieve_reviews(vs,query_name, metadata_filter, k)
+        retrieved_ids = rag_retrival.retrieve_reviews(vs,query, metadata_filter, k)
 
         # 3. calculate
         correct = gt_ids & retrieved_ids
@@ -298,7 +405,7 @@ def evaluate_all_models():
 
 if __name__ == "__main__":
 
-    gene_all_models_index()
+    # gene_all_models_index()
     results = evaluate_all_models()
     df = pd.DataFrame(results)
     df.to_csv(evaluation_result_file, index=False)
