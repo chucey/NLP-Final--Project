@@ -147,7 +147,14 @@ if __name__ == "__main__":
     print("=====Vectorstore loaded.=====")
 
     print("=====Retrieving reviews...=====")
-    docs = rag_retrival.retrieve_reviews_for_summary(rag, categories="Italian", k=80)
+    metadata_filter = {
+        "categories": "Italian",
+        'business_name': None,
+        "city": None,
+        "state": None,
+        "review_stars": None
+    }
+    docs = rag_retrival.retrieve_reviews_for_summary(rag, metadata_filter=metadata_filter, k=10)
     print("=====Reviews retrieved.=====")
 
     if torch.backends.mps.is_available():

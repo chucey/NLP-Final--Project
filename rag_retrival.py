@@ -36,6 +36,40 @@ def _doc_matches_filters(doc: Document, metadata_filter: dict) -> bool:
     for key, expected in metadata_filter.items():
         actual = doc.metadata.get(key)
 
+        if actual is None:
+            return False
+
+        # ===== dict =====
+        if isinstance(expected, dict):
+            try:
+                actual_num = float(actual)
+                val_num = float(expected.get("value"))
+            except (TypeError, ValueError):
+                return False
+
+            op = expected.get("op")
+
+            if op == "lt":
+                if not (actual_num < val_num):
+                    return False
+            elif op == "lte":
+                if not (actual_num <= val_num):
+                    return False
+            elif op == "gt":
+                if not (actual_num > val_num):
+                    return False
+            elif op == "gte":
+                if not (actual_num >= val_num):
+                    return False
+            elif op == "eq":
+                if not (actual_num == val_num):
+                    return False
+            else:
+                return False
+
+            # This filter key has already been evaluated.
+            continue
+
         # Use case-insensitive substring matching for text metadata.
         if isinstance(expected, str):
             if _normalize(expected) not in _normalize(actual):
@@ -45,12 +79,14 @@ def _doc_matches_filters(doc: Document, metadata_filter: dict) -> bool:
                 return False
     return True
 
-def load_vectorstore(index_dir: str ="faiss_yelp", model_name: str = "sentence-transformers/all-MiniLM-L6-v2" ) -> FAISS:
+def load_vectorstore(index_dir: str ="faiss_yelp",
+                     model: str = "sentence-transformers/all-MiniLM-L6-v2") -> FAISS:
     """
     loads a FAISS vectorstore
 
     Args:
         index_dir (str, optional): directory of the vectorstore. Defaults to "faiss_yelp".
+        model (str, optional): name of the embedding model to use. Defaults to "sentence-transformers/all-MiniLM-L6-v2".
 
     Returns:
         FAISS: the loaded FAISS vectorstore
@@ -59,174 +95,111 @@ def load_vectorstore(index_dir: str ="faiss_yelp", model_name: str = "sentence-t
     hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
     model_kwargs = {"token": hf_token} if hf_token else {}
     emb = HuggingFaceEmbeddings(
-        model_name= model_name,
-        model_kwargs= model_kwargs,
+        model_name=model,
+        model_kwargs=model_kwargs,
     )
     return FAISS.load_local(index_dir, emb, allow_dangerous_deserialization=True)
 
 def retrieve_reviews_for_summary(vs: FAISS,
-                                 business_name: str = None,
-                                 city: str = None,
-                                 state: str = None,
-                                 review_stars: int = None,
-                                 categories: str = None,
-                                 k: int = 80) -> str:
+                                 metadata_filter: dict = None,
+                                 query: str = None,
+                                 k: int = 80,
+                                 eval_mode: bool = False) -> str | set[str]:
     """
-    Retrieves documents from the FAISS vectorstore based on a broad query related to customer experience, food quality, service, atmosphere, value, wait time, and cleanliness. The retrieval can be optionally filtered by business name, review stars, and categories. If metadata filters are provided, the function first attempts to fetch matching documents directly from the FAISS docstore for more reliable results. If no metadata filters are provided or if the direct fetch yields no results, it performs a similarity search using the broad query and then applies metadata filtering in Python to ensure robust matching.
+    Retrieves documents from the FAISS vectorstore based on metadata filtering or a similarity search. If any metadata filters are specified, it retrieves all documents from the FAISS docstore and applies the filters in Python to find matching documents. If no metadata filters are provided, it performs a similarity search using the provided query. If no query or metadata filters are provided, the function outputs "no results found." The retrieved documents are then formatted into a string that includes selected metadata fields and the content of the reviews.
+
+    If eval_mode is True, the function will return a set of retrieved review IDs instead of the formatted string. This is used for evaluating retrieval performance against ground truth labels.
 
     Args:
         vs (FAISS): the loaded FAISS vectorstore to search for relevant documents
-        business_name (str, optional): The name of the business to filter by. Defaults to None.
-        city (str, optional): The city to filter by. Defaults to None.
-        state (str, optional): The state to filter by. Defaults to None.
-        review_stars (int, optional): The number of stars to filter by. Defaults to None.
-        categories (str, optional): The categories to filter by. Defaults to None.
+        metadata_filter (dict, optional): A dictionary of metadata fields and their expected values to filter the documents. For string fields, the document's metadata value must contain the expected value as a substring (case-insensitive). For non-string fields, an exact match is required. Defaults to None.
+            The metadata fields can include:
+            - business_name (str): The name of the business to filter by.
+            - city (str): The city to filter by.
+            - state (str): The state to filter by.
+            - review_stars (int): The number of stars to filter by.
+            - categories (str): The categories to filter by.
+
+            The expected values can be specified as follows:
+            - For string fields, provide a substring to match (e.g. "Italian" to match any category containing "Italian").
+            - For numeric fields, you can provide an exact value (e.g. 5 to match reviews with 5 stars).
+            - For numeric fields, you can also provide a dictionary with an operator and value for range filtering (e.g. {"op": "gte", "value": 4} to match reviews with 4 or more stars).
+                The supported operators are:
+                - "lt": less than
+                - "lte": less than or equal to
+                - "gt": greater than
+                - "gte": greater than or equal to
+                - "eq": equal to
+
+            Example metadata_filter:
+            {
+                "business_name": "Home Depot",
+                "city": "Phoenix",
+                "state": "AZ",
+                "review_stars": {"op": "gte", "value": 4} or 5,
+                "categories": "Hardware"
+            }
+
+        query (str, optional): The query to use for similarity search. Defaults to None.
         k (int, optional): The number of documents to return. Defaults to 80.
+        eval_mode (bool, optional): Whether to return a set of retrieved review IDs for evaluation purposes instead of the formatted string. Defaults to False.
 
     Returns:
-        str: a formatted string containing the retrieved reviews and selected metadata
+        str | set[str]: a formatted string containing the retrieved reviews and selected metadata, or a set of retrieved review IDs if eval_mode is True
     """
-    metadata_filter = {}
-    
-    if business_name:
-        metadata_filter["business_name"] = business_name
-    if review_stars:
-        metadata_filter["review_stars"] = review_stars
-    if categories:
-        metadata_filter["categories"] = categories
-    if city:
-        metadata_filter["city"] = city
-    if state:
-        metadata_filter["state"] = state
+   
 
     # If metadata is provided, fetch matching docs directly from the FAISS docstore.
     # This is more reliable for summary workloads than semantic pre-filtering.
-    matches = []
-    if metadata_filter:
-        all_docs = getattr(vs.docstore, "_dict", {}).values()
-        matches = [doc for doc in all_docs if _doc_matches_filters(doc, metadata_filter)]
-        if not matches:
-            # broad "summary-oriented" query
-            query = "overall customer experience food quality service atmosphere value wait time cleanliness"
 
-            # Pull a broader candidate set then apply robust metadata checks in Python.
-            # This avoids empty results from tiny typos/casing differences in exact filter matching.
-            candidate_k = max(k * 8, 100)
-            candidates = vs.similarity_search(query=query, k=candidate_k)
-            matches = [doc for doc in candidates if _doc_matches_filters(doc, metadata_filter)]
+    metadata_filter = metadata_filter or {}
 
-    else:
-        # broad "summary-oriented" query
-        query = "overall customer experience food quality service atmosphere value wait time cleanliness"
+    if all(value is None for value in metadata_filter.values()) and not query:
+        return "No results found."
+    if all(value is None for value in metadata_filter.values()) and query:
         matches = vs.similarity_search(query=query, k=k)
+    else: 
+        matches = []
+        metadata_filter = {k: v for k, v in metadata_filter.items() if v is not None}  # remove None values from filter
+        if metadata_filter:
+            all_docs = getattr(vs.docstore, "_dict", {}).values()
+            matches = [doc for doc in all_docs if _doc_matches_filters(doc, metadata_filter)]
+            if not matches and not query:
+                return "no results found."
+            elif not matches:
+                # This avoids empty results from tiny typos/casing differences in exact filter matching.
+                candidate_k = max(k * 8, 100)
+                candidates = vs.similarity_search(query=query, k=candidate_k)
+                matches = [doc for doc in candidates if _doc_matches_filters(doc, metadata_filter)]
+
+        else:      
+            matches = vs.similarity_search(query=query, k=k)
+
+    if eval_mode:
+        return {doc.metadata.get('review_id') for doc in matches[:k]}
 
     formatted_reviews = [
         f"Business Name: {doc.metadata.get('business_name')} | Content: {doc.page_content} | City: {doc.metadata.get('city')} | State: {doc.metadata.get('state')} | Review Stars: {doc.metadata.get('review_stars')}\n---"
         for doc in matches[:k]
     ]
-    return "\n\n".join(formatted_reviews)
+    if not formatted_reviews:
+        return "No results found."
 
-# vs = load_vectorstore()
-# results = retrieve_reviews_for_summary(vs, categories="Italian", k=10)
-# print(results)
+    return "\n\n".join(formatted_reviews)
 
 # if __name__ == "__main__":
 #     vs = load_vectorstore()
-#     results = retrieve_reviews_for_summary(vs, categories="Italian", k=10)
-#     # print(f"Retrieved {len(results)} review chunks")
-#     print("Sample retrieved document metadata and content:")
+#     metadata_filter = {
+#         "categories": None,
+#         'business_name': 'Home Depot',
+#         "city": None,
+#         "state": None,
+#         "review_stars": {"op": "gte", "value": 4}
+#     }
+#     results = retrieve_reviews_for_summary(vs, 
+#                                            metadata_filter = metadata_filter,
+#                                             query='good breakfast spots',
+#                                             k=10,
+#                                             eval_mode=True)
 #     print(results)
-#     # print(f"Retrieved {len(results)} review chunks")
-#     # for doc in results:
-#     #     print(doc.metadata)
-#     #     print(doc.page_content[:200])  # print first 200 chars of the review
-#     #     print("-" * 80)
 
-
-def _doc_matches_filters1 (doc: Document, metadata_filter: dict) -> bool:
-
-    for key, expected in metadata_filter.items():
-        actual = doc.metadata.get(key)
-
-        if actual is None:
-            return False
-
-        # ===== dict =====
-        if isinstance(expected, dict):
-            try:
-                actual = float(actual)
-            except:
-                return False
-            op = expected.get("op")
-            val = expected.get("value")
-
-            if op == "lt":
-                if not (actual < val):
-                    return False
-            elif op == "lte":
-                if not (actual <= val):
-                    return False
-            elif op == "gt":
-                if not (actual > val):
-                    return False
-            elif op == "gte":
-                if not (actual >= val):
-                    return False
-            elif op == "eq":
-                if not (actual == val):
-                    return False
-
-        # ===== str =====
-        elif isinstance(expected, str):
-            if key == "categories":
-                if _normalize(expected) not in _normalize(actual):
-                    return False
-            else:
-                if _normalize(expected) != _normalize(actual):
-                    return False
-
-        # ===== num =====
-        else:
-            if actual != expected:
-                return False
-
-    return True
-
-def retrieve_reviews(vs: FAISS,
-                     query: str = None,
-                     metadata_filter: dict = None,
-                     k: int = 80
-                     ) -> set[str]:
-    """
-    Retrieves documents from the FAISS vectorstore based on a broad query related to customer experience, food quality, service, atmosphere, value, wait time, and cleanliness. The retrieval can be optionally filtered by business name, review stars, and categories. If metadata filters are provided, the function first attempts to fetch matching documents directly from the FAISS docstore for more reliable results. If no metadata filters are provided or if the direct fetch yields no results, it performs a similarity search using the broad query and then applies metadata filtering in Python to ensure robust matching.
-
-    Args:
-        metadata_filter:
-        query:
-        vs (FAISS): the loaded FAISS vectorstore to search for relevant documents
-        k (int, optional): The number of documents to return. Defaults to 80.
-
-    Returns:
-        set[str]: a formatted string containing the retrieved reviews and selected metadata
-    """
-
-    if metadata_filter:
-        candidate_k = max(k * 5, 100)
-    else:
-        candidate_k = k
-    candidates = vs.similarity_search(query=query, k=candidate_k)
-    if metadata_filter:
-        matches = [
-            doc for doc in candidates
-            if _doc_matches_filters1(doc, metadata_filter)
-        ]
-    else:
-        matches = candidates
-
-    review_ids = {
-        doc.metadata.get("review_id")
-        for doc in matches[:k]
-        if doc.metadata.get("review_id") is not None
-    }
-
-    return review_ids
