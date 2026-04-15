@@ -136,9 +136,17 @@ def retrieve_reviews_for_summary(vs: FAISS,
                 "business_name": "Home Depot",
                 "city": "Phoenix",
                 "state": "AZ",
-                "review_stars": {"op": "gte", "value": 4} or 5,
+                "review_stars": {"op": "gte", "value": 4},
                 "categories": "Hardware"
-            }
+            } 
+                            or
+             {
+                "business_name": "Home Depot",
+                "city": "Phoenix",
+                "state": "AZ",
+                "review_stars": 4,
+                "categories": "Hardware"
+            } 
 
         query (str, optional): The query to use for similarity search. Defaults to None.
         k (int, optional): The number of documents to return. Defaults to 80.
