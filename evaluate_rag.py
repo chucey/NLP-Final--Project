@@ -4,9 +4,11 @@ This file evaluates the RAG retrieval system by loading the RAG and ground truth
 from langchain_community.vectorstores import FAISS
 import pandas as pd
 import build_rag
-import rag_retrival_eval
+import rag_retrival
 import pickle
 import os
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 def load_ground_truth_labels(labels_path: str = "data/ground_truth_labels.pkl") -> list[dict]:
     """
@@ -51,16 +53,18 @@ def evaluate_retrieval(vs: FAISS, ground_truth_labels: list[dict], use_metadata_
         relevant_review_ids = label["review_ids"]
 
         if use_metadata_filter and metadata_filter:
-            retrieved_review_ids = rag_retrival_eval.retrieve_reviews_for_summary(
+            retrieved_review_ids = rag_retrival.retrieve_reviews_for_summary(
                 vs,
-               **metadata_filter, # unpack metadata filter for retrieval``
-               query=query,
+                metadata_filter, # unpack metadata filter for retrieval
+                query=query,
+                eval_mode=True, # return retrieved review IDs for evaluation
                 k=len(relevant_review_ids) * 2  # Retrieve more to account for potential noise in retrieval
         )
         else:
-            retrieved_review_ids = rag_retrival_eval.retrieve_reviews_for_summary(
+            retrieved_review_ids = rag_retrival.retrieve_reviews_for_summary(
                 vs,
                 query=query,
+                eval_mode=True, # return retrieved review IDs for evaluation
                 k=len(relevant_review_ids) * 2  # Retrieve more to account for potential noise in retrieval
             )
 
@@ -81,6 +85,75 @@ def evaluate_retrieval(vs: FAISS, ground_truth_labels: list[dict], use_metadata_
     avg_f1_score = sum(f1_scores) / len(f1_scores)
 
     return avg_precision, avg_recall, avg_f1_score
+
+def plot_evaluation_results(results_df: pd.DataFrame):
+    # Use your in-memory results dataframe
+    plot_df = results_df.copy()
+
+    # Make labels cleaner
+    model_short = {
+        "BAAI/bge-base-en-v1.5": "bge-base",
+        "BAAI/bge-small-en-v1.5": "bge-small",
+        "sentence-transformers/all-MiniLM-L6-v2": "MiniLM-L6-v2",
+        "sentence-transformers/all-mpnet-base-v2": "mpnet-base-v2",
+    }
+    plot_df["embedding_model_short"] = plot_df["embedding_model"].map(model_short).fillna(plot_df["embedding_model"])
+    plot_df["metadata_flag"] = plot_df["use_metadata_filter"].map({True: "Metadata=True", False: "Metadata=False"})
+
+    # Long format for grouped bars
+    long_df = plot_df.melt(
+        id_vars=["embedding_model_short", "chunk_size", "metadata_flag"],
+        value_vars=["avg_precision", "avg_recall", "avg_f1_score"],
+        var_name="metric",
+        value_name="score"
+    )
+
+    metric_labels = {
+        "avg_precision": "Precision",
+        "avg_recall": "Recall",
+        "avg_f1_score": "F1"
+    }
+    long_df["metric"] = long_df["metric"].map(metric_labels)
+
+    # Keep deterministic ordering
+    row_order = sorted(long_df["chunk_size"].unique().tolist())
+    col_order = sorted(long_df["embedding_model_short"].unique().tolist())
+
+    sns.set_theme(style="whitegrid")
+    g = sns.catplot(
+        data=long_df,
+        kind="bar",
+        x="metric",
+        y="score",
+        hue="metadata_flag",
+        row="chunk_size",
+        col="embedding_model_short",
+        row_order=row_order,
+        col_order=col_order,
+        height=2.4,
+        aspect=1.15,
+        palette=["#4C78A8", "#F58518"],
+        legend=True,
+        sharey=True
+    )
+
+    g.set_axis_labels("", "Score")
+    g.set_titles(row_template="chunk_size={row_name}", col_template="{col_name}")
+
+    # Make bars easier to read
+    for ax in g.axes.flat:
+        ax.set_ylim(0, 1)
+        ax.tick_params(axis="x", rotation=0)
+
+    g.fig.subplots_adjust(top=0.92, hspace=0.32, wspace=0.15)
+    g.fig.suptitle("RAG Retrieval Metrics by Embedding Model, Chunk Size, and Metadata Filter", fontsize=14)
+
+    plt.show()
+    # save the plot
+    plot_save_path = "data/retrieval_evaluation_plot.png"
+    g.savefig(plot_save_path)
+    print(f"Saved evaluation plot to {plot_save_path}")
+   
             
 if __name__ == "__main__":
     # define paths
@@ -98,9 +171,7 @@ if __name__ == "__main__":
                         "BAAI/bge-base-en-v1.5"
                         ]
     
-    chunk_sizes = [
-                    800, 289, 137, 81
-                   ]
+    chunk_sizes = [800, 289, 137, 81]
     use_metadata_filter = True  # Set to False to evaluate retrieval without metadata filtering
     # load ground truth labels
     print("Loading ground truth labels...")
@@ -130,7 +201,7 @@ if __name__ == "__main__":
                     
                 # load the corresponding RAG index
                 print(f"Loading RAG index for model: {model_name}, chunk size: {chunk_size}...")
-                vs = rag_retrival_eval.load_vectorstore(index_dir=index_dir, model_name=model_name)
+                vs = rag_retrival.load_vectorstore(index_dir=index_dir, model=model_name)
 
                 # evaluate retrieval performance
                 # evaluate retreive with both metadata filtering and wothout metadata filtering to see the difference in performance    
@@ -155,6 +226,7 @@ if __name__ == "__main__":
     results_df = pd.DataFrame(results)
     results_df.to_csv(eval_results_path, index=False)
     print("Saved evaluation results.")
+    plot_evaluation_results(results_df)
 
 
 
