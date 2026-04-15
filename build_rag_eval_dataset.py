@@ -278,6 +278,74 @@ ground_truths.append({
 
 # ============ ADD MORE QUERIES AS NEEDED ============
 
+# query 21 - mediocre breafast spots in New Orleans
+filter_21 = (df["review_stars"] < 3) & (df["city"] == "New Orleans") & (df["categories"].str.contains("Breakfast", case = False))
+mediocre_breakfast_no_reviews = df[filter_21]
+ground_truth_labels_21 = set(mediocre_breakfast_no_reviews["review_id"].tolist())
+# len(ground_truth_labels_21)
+ground_truths.append({
+    "query": "mediocre breakfast spots in New Orleans",
+    "metadata_filter": {
+        "review_stars": {"op": "lt", "value": 3},
+        "city": "New Orleans",
+        "categories": "Breakfast"
+    },
+    "review_ids": ground_truth_labels_21})
+
+# query 22 - Amazing breakfast spots in New Orleans
+filter_22 = (df["review_stars"] >= 4) & (df["city"] == "New Orleans") & (df["categories"].str.contains("Breakfast", case = False))
+amazing_breakfast_no_reviews = df[filter_22]
+ground_truth_labels_22 = set(amazing_breakfast_no_reviews["review_id"].tolist())
+# len(ground_truth_labels_22)
+ground_truths.append({
+    "query": "Amazing breakfast spots in New Orleans",
+    "metadata_filter": {
+        "review_stars": {"op": "gte", "value": 4},
+        "city": "New Orleans",
+        "categories": "Breakfast"
+    },
+    "review_ids": ground_truth_labels_22})
+
+# query 23 sushi places in Tampa
+filter_23 = (df["city"] == "Tampa") & (df["categories"].str.contains("Sushi", case = False))
+sushi_tampa_reviews = df[filter_23]
+ground_truth_labels_23 = set(sushi_tampa_reviews["review_id"].tolist())
+# len(ground_truth_labels_23)
+ground_truths.append({
+    "query": "sushi places in Tampa",
+    "metadata_filter": {
+        "city": "Tampa",
+        "categories": "Sushi"
+    },
+    "review_ids": ground_truth_labels_23})
+
+# query 24 - average sushi places in Tampa
+filter_24 = (df["review_stars"] == 3) & (df["city"] == "Tampa") & (df["categories"].str.contains("Sushi", case = False))
+average_sushi_tampa_reviews = df[filter_24]
+ground_truth_labels_24 = set(average_sushi_tampa_reviews["review_id"].tolist())
+# len(ground_truth_labels_24)
+ground_truths.append({
+    "query": "average sushi places in Tampa",
+    "metadata_filter": {
+        "review_stars": 3,
+        "city": "Tampa",
+        "categories": "Sushi"
+    },
+    "review_ids": ground_truth_labels_24})
+
+# query 25 - great sushi places in Tampa
+filter_25 = (df["review_stars"] >= 4) & (df["city"] == "Tampa") & (df["categories"].str.contains("Sushi", case = False))
+great_sushi_tampa_reviews = df[filter_25]
+ground_truth_labels_25 = set(great_sushi_tampa_reviews["review_id"].tolist())
+# len(ground_truth_labels_25)
+ground_truths.append({
+    "query": "great sushi places in Tampa",
+    "metadata_filter": {
+        "review_stars": {"op": "gte", "value": 4},
+        "city": "Tampa",
+        "categories": "Sushi"
+    },
+    "review_ids": ground_truth_labels_25})
 
 # =========== NO MORE QUERIES BEYOND THIS POINT ===========
 
