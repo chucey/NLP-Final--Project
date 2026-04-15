@@ -14,11 +14,14 @@ def build_index(
     chunk_size: int = 800,
     index_dir: str = "faiss_yelp",
     text_col: str = "clean_text",
-    metadata_cols = ("review_id", "business_id", "business_name","city", "state", "categories", "review_stars", "date") 
+    metadata_cols = ("review_id", "business_id", "business_name","city", "state", "categories", "review_stars", "date"),
 ):
     """Builds a FAISS index from a CSV file containing text data and metadata.
 
     Args:
+        chunk_overlap:
+        chunk_size:
+        model_name:
         csv_path (str): Path to the CSV file containing the data.
         model_name (str, optional): The name of the Hugging Face model to use for generating embeddings. Defaults to "sentence-transformers/all-MiniLM-L6-v2".
         chunk_size (int, optional): The size of the text chunks to create for indexing. Defaults to 800.
