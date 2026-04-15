@@ -76,7 +76,7 @@ def summarize_reviews(docs: str, tok: AutoTokenizer, model: AutoModelForCausalLM
             **inputs,
             max_new_tokens=700,
             do_sample=True,
-            temperature=0.6,
+            temperature=0.5,
             top_p=0.9,
             eos_token_id=tok.eos_token_id,
         )
@@ -93,7 +93,14 @@ if __name__ == "__main__":
     print("=====Vectorstore loaded.=====")
 
     print("=====Retrieving reviews...=====")
-    docs = rag_retrival.retrieve_reviews_for_summary(rag, categories="Italian", k=80)
+    metadata_filter = {
+        "categories": "Italian",
+        'business_name': None,
+        "city": None,
+        "state": None,
+        "review_stars": None
+    }
+    docs = rag_retrival.retrieve_reviews_for_summary(rag, metadata_filter=metadata_filter, k=10)
     print("=====Reviews retrieved.=====")
 
     if torch.backends.mps.is_available():
