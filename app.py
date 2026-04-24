@@ -1,3 +1,5 @@
+import os
+
 import gradio as gr
 from rag_retrival import load_vectorstore, retrieve_reviews_for_summary
 from prompt import load_model, summarize_reviews
@@ -25,7 +27,7 @@ def generate_review_summary(
     }
 
     rag = load_vectorstore()
-    docs = retrieve_reviews_for_summary(rag, metadata_filter=metadata_filter, k=10)
+    docs = retrieve_reviews_for_summary(rag, metadata_filter=metadata_filter, k=20)
     summary = summarize_reviews(docs=docs, model=model, tok=tok)
     return summary
 
@@ -56,10 +58,11 @@ body {
     margin-top: 6px;
 }
 .card {
-    background: white;
+    background: var(--block-background-fill);
+    color: var(--body-text-color);
     border-radius: 18px;
-    padding: 22px;
-    margin-bottom: 20px;
+    padding: 10px;
+    margin-bottom: 12px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 """
@@ -74,21 +77,26 @@ with gr.Blocks() as demo:
         """)
 
         with gr.Group(elem_classes="card"):
-            gr.Markdown("### Filters")
+            gr.Markdown("## Filters")
             with gr.Row():
-                business_name = gr.Textbox(label="Business Name")
-                city = gr.Textbox(label="City")
-                state = gr.Textbox(label="State")
-                categories = gr.Textbox(label="Categories")
-                stars = gr.Number(label="Review Stars", precision=1)
+                business_name = gr.Textbox(label="Business Name", placeholder="e.g. Joe's Pizza")
+                city = gr.Textbox(label="City", placeholder="e.g. New Orleans")
+                state = gr.Textbox(label="State", placeholder="e.g. PA")
+                categories = gr.Textbox(label="Categories", placeholder="e.g. Italian, Pizza")
+                stars =  gr.Dropdown(
+                                label="Review Stars (optional)",
+                                choices=[("Any", None), 1, 2, 3, 4, 5],
+                                value=None,
+                                allow_custom_value=False,
+                            )
 
             with gr.Row():
                 reset_btn = gr.Button("Reset", variant="secondary")
                 run_btn = gr.Button("Analyze", variant="primary")
 
         with gr.Group(elem_classes="card"):
-            gr.Markdown("### Summary")
-            summary_output = gr.Markdown()
+            gr.Markdown("## Summary")
+            summary_output = gr.Textbox(label="", lines=10)
 
     run_btn.click(
         fn=generate_review_summary,
@@ -102,4 +110,10 @@ with gr.Blocks() as demo:
         outputs=[business_name, city, state, categories, stars, summary_output],
     )
 
-demo.launch(inbrowser=True, css=css)
+demo.launch(
+    server_name="0.0.0.0",
+    server_port=int(os.environ.get("PORT", 7860)),
+    share=False,
+    inbrowser=False,
+    css=css,
+)
