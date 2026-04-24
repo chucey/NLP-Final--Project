@@ -1,3 +1,5 @@
+import os
+
 import gradio as gr
 from rag_retrival import load_vectorstore, retrieve_reviews_for_summary
 from prompt import load_model, summarize_reviews
@@ -25,7 +27,7 @@ def generate_review_summary(
     }
 
     rag = load_vectorstore()
-    docs = retrieve_reviews_for_summary(rag, metadata_filter=metadata_filter, k=10)
+    docs = retrieve_reviews_for_summary(rag, metadata_filter=metadata_filter, k=20)
     summary = summarize_reviews(docs=docs, model=model, tok=tok)
     return summary
 
@@ -108,6 +110,10 @@ with gr.Blocks() as demo:
         outputs=[business_name, city, state, categories, stars, summary_output],
     )
 
-demo.launch(inbrowser=True,
-            server_port=7860,
-            css=css,)
+demo.launch(
+    server_name="0.0.0.0",
+    server_port=int(os.environ.get("PORT", 7860)),
+    share=False,
+    inbrowser=False,
+    css=css,
+)
