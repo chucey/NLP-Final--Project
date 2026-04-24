@@ -1,10 +1,10 @@
-
-.env
-.venv
 __pycache__/
-.ipynb_checkpoints/
 *.pyc
-.DS_Store
+.env
+venv/
+.faiss
+*.pkl
 faiss_yelp/
-ground_truth.ipynb
+node_modules/
+.DS_Store
 eval_rags/
