@@ -1,24 +1,13 @@
 import pandas as pd
 import re
-# import matplotlib.pyplot as plt
 import numpy as np
 
 print("Loading data...")
 
-reviews = pd.read_json(
-    "data/yelp_academic_dataset_review.json",
-    lines=True,
-    nrows=80000
-)
+df = pd.read_csv("data/all_reviews_dataset.csv")
 
-print("Review dataset loaded with shape:", reviews.shape)
-
-business = pd.read_json(
-    "data/yelp_academic_dataset_business.json",
-    lines=True
-)
-
-print("Business dataset loaded with shape:", business.shape)
+print("Dataset loaded with shape:", df.shape)
+print("Columns:", df.columns.tolist())
 
 def clean_text(text):
     text = str(text).lower()
@@ -26,61 +15,58 @@ def clean_text(text):
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
-print("Cleaning review text...")
-reviews["clean_text"] = reviews["text"].apply(clean_text)
+text_col = None
+for candidate in ["text", "review_text", "clean_text", "review", "content"]:
+    if candidate in df.columns:
+        text_col = candidate
+        break
 
-print("Merging data...")
+if text_col is None:
+    raise ValueError(f"No review text column found. Available columns: {df.columns.tolist()}")
 
-merged = pd.merge(
-    reviews,
-    business,
-    on="business_id",
-    how="inner"
-)
+print(f"Using review text column: {text_col}")
+df["clean_text"] = df[text_col].apply(clean_text)
 
-merged = merged.rename(columns={
-    "stars_x": "review_stars",
-    "name": "business_name"
-})
+if "business_name" not in df.columns and "name" in df.columns:
+    df = df.rename(columns={"name": "business_name"})
 
-df = merged[[
-    "business_id",
-    "business_name",
-    "city",
-    "state",
-    "categories",
-    "review_id",
-    "clean_text",
-    "date",
-    "review_stars"
-]]
+if "review_stars" not in df.columns:
+    if "stars" in df.columns:
+        df = df.rename(columns={"stars": "review_stars"})
+    elif "rating" in df.columns:
+        df = df.rename(columns={"rating": "review_stars"})
 
-df["review_length"] = df["clean_text"].apply(lambda x: len(x.split()))
+required_defaults = {
+    "business_id": "",
+    "business_name": "",
+    "city": "",
+    "state": "",
+    "categories": "",
+    "review_id": "",
+    "date": "",
+    "review_stars": np.nan,
+}
+
+for col, default in required_defaults.items():
+    if col not in df.columns:
+        df[col] = default
+
+df = df[
+    [
+        "business_id",
+        "business_name",
+        "city",
+        "state",
+        "categories",
+        "review_id",
+        "clean_text",
+        "date",
+        "review_stars",
+    ]
+]
+
+df["review_length"] = df["clean_text"].apply(lambda x: len(str(x).split()))
 
 print("\nDataset shape:", df.shape)
-
 print("\nSample data:")
 print(df.head(3))
-
-# Some light EDA
-# df.head(3)
-# df["review_length"].describe()
-
-# df.plot(kind="hist", y="review_length", bins=50, title="Distribution of Review Lengths")
-# df.plot(kind="hist", y="review_stars", bins=5, title="Distribution of Review Stars")
-# plt.show()
-
-# remove the bottom 10 percent of reviews by length
-tenth_percentile = np.percentile(df["review_length"], 10)
-print("10th Percentile of Review Lengths:", tenth_percentile)
-
-print("Dropping rows with missing values...")
-df.dropna(inplace=True)
-df = df[df["review_length"] > tenth_percentile]
-print("Dataset info after dropping missing values:")
-print(df.info())
-
-# save the cleaned and merged dataset for future use
-save_path = "data/all_reviews_dataset.csv"
-df.to_csv(save_path, index=False)
-print(f"\nSaved dataset with categories to {save_path}")
