@@ -139,7 +139,7 @@ def retrieve_reviews_for_summary(vs: FAISS,
                 "review_stars": {"op": "gte", "value": 4},
                 "categories": "Hardware"
             } 
-                            or
+                        or
              {
                 "business_name": "Home Depot",
                 "city": "Phoenix",
@@ -199,14 +199,15 @@ def retrieve_reviews_for_summary(vs: FAISS,
 #     vs = load_vectorstore()
 #     metadata_filter = {
 #         "categories": None,
-#         'business_name': 'Home Depot',
-#         "city": None,
+#         'business_name': 'Jack in the Box',
+#         "city": "New Orleans",
 #         "state": None,
-#         "review_stars": {"op": "gte", "value": 4}
+#         "review_stars": None
 #     }
+#     query = "What's Jack in the Box like in New Orleans?"
 #     results = retrieve_reviews_for_summary(vs, 
 #                                            metadata_filter = metadata_filter,
-#                                             query='good breakfast spots',
+#                                             query=query,
 #                                             k=10,
 #                                             eval_mode=True)
 #     print(results)
