@@ -19,6 +19,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --memory 16Gi \
   --concurrency 1 \
   --no-gpu-zonal-redundancy \
+  --cpu-boost \
   --allow-unauthenticated \
   --port "$PORT"
 
