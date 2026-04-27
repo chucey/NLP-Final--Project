@@ -57,6 +57,6 @@ If the video doesn't render, watch it [here](images/NLP_video_demo.mp4)
 
 - Run `app.py`
 
-### Deploy to Google Cloud Run
+### Deploy to Google Cloud
 
 - Run `deploy.sh`
