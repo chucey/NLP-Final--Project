@@ -33,18 +33,10 @@ In this project, we built a RAG to house the Yelp reviews. From there, we used a
 The web app was built using Gradio. It gives the user the ability enter data into several text fields. Given the user's input, the relevant information will be retrieved from the RAG, summarized by a Large Language Model and returned to the user.
 
 here's a video demo of the app:
-<video width="100%" controls>
-
-  <source src="images/NLP_video_demo.mp4" type="video/mp4">
- </video>
-
- 
 
 https://github.com/user-attachments/assets/5ec02350-b459-42f0-90fe-695790745ae0
 
-
-
-[Watch the demo video](images/NLP_video_demo.mp4)
+If the video doesn't render, watch it [here](images/NLP_video_demo.mp4)
 
 ## How to Use this Repo
 
