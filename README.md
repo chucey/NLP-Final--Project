@@ -23,3 +23,5 @@ To accomplish this project, we:
    1. queries the database for relevant entries
    2. encorporates these entries into its context
    3. returns a summary of the reviews as well as some general sentiments
+5. Built a web app using Gradio
+6. Deployed the web app to the cloud
