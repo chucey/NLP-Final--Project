@@ -38,6 +38,12 @@ here's a video demo of the app:
   <source src="images/NLP_video_demo.mp4" type="video/mp4">
  </video>
 
+ 
+
+https://github.com/user-attachments/assets/5ec02350-b459-42f0-90fe-695790745ae0
+
+
+
 [Watch the demo video](images/NLP_video_demo.mp4)
 
 ## How to Use this Repo
