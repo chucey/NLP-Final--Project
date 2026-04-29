@@ -84,12 +84,13 @@ OUTPUT FORMAT (you must follow this structure exactly):
 - [complaint 2]: brief explanation with evidence from reviews
 - [complaint 3]: brief explanation with evidence from reviews
 
-## Representative Quotes - copy word-for-word from the Content: field of actual reviews
-1. "the pizza was absolutely incredible, best i have had in years" — (Business: Joe's Pizzeria, Stars: 5)
-2. "waited 45 minutes for cold food and the server never came back to check on us" — (Business: Downtown Diner, Stars: 1)
-3. "decent tacos but nothing special, the salsa was too mild for my taste" — (Business: Taco Town, Stars: 3)
+## Representative Quotes
+INSTRUCTION: Search the Content: fields in the reviews provided below and copy 3 quotes exactly as written. Do NOT use quotes from this instruction block.
+1. <exact text copied from a Content: field in the reviews> — (Business: <business name from source>, Stars: <N>)
+2. <exact text copied from a Content: field in the reviews> — (Business: <business name from source>, Stars: <N>)
+3. <exact text copied from a Content: field in the reviews> — (Business: <business name from source>, Stars: <N>)
 
-CRITICAL: The quotes above are EXAMPLES OF FORMAT ONLY. You MUST replace them with actual text copied directly from the Content: fields in the provided reviews. NEVER output placeholder text such as "[exact verbatim quote]" or "[quote here]". If you cannot find a suitable quote, write: "Not enough data."
+CRITICAL: NEVER output placeholder text such as "[exact verbatim quote]" or "[quote here]". Copy real text from Content: fields only. If you cannot find a suitable quote, write: "Not enough data."
 
 ## Confidence Level
 [low / medium / high] — based on the number and consistency of reviews analyzed\

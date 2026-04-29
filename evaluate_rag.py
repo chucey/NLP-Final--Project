@@ -240,6 +240,9 @@ def _check_hallucination_signals(summary: str, source_reviews: str) -> dict:
         # Skip if the match contains a newline — it's a paragraph opening, not a business name
         if "\n" in name:
             continue
+        # Skip "At Xxx Yyy" — prepositional phrases, not business names
+        if name.startswith("At "):
+            continue
         name_lower = name.lower()
         skip = [
             "overall sentiment", "top praised", "top complaints", "representative quotes",
@@ -248,6 +251,11 @@ def _check_hallucination_signals(summary: str, source_reviews: str) -> dict:
             "mixed", "positive", "negative", "neutral",
             "final answer", "final output", "detailed analysis",
             "low", "medium", "high", "based on",
+            # descriptor words used as bullet sub-headers by 4B model
+            "quality", "times", "experience", "preparation", "staffing",
+            "items", "customer", "wait", "service", "atmosphere", "issues",
+            "slow", "poor", "great", "fresh", "unique", "authentic", "inconsistent",
+            "unfriendly", "unpleasant", "creative", "affordable",
         ]
         if any(s in name_lower for s in skip):
             continue
