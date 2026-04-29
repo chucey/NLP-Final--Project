@@ -167,7 +167,7 @@ def plot_evaluation_results(results_df: pd.DataFrame):
 # Key sections we expect a good summary to contain (based on SYSTEM_PROMPT)
 EXPECTED_SECTIONS = [
     "overall sentiment",
-    "top praised themes",
+    "top praised theme",  # matches SYSTEM_PROMPT header (singular)
     "top complaints",
     "representative quotes",
     "confidence level",
@@ -237,9 +237,18 @@ def _check_hallucination_signals(summary: str, source_reviews: str) -> dict:
             source_businesses.add(name)
     summary_names = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b', summary)
     for name in summary_names:
+        # Skip if the match contains a newline — it's a paragraph opening, not a business name
+        if "\n" in name:
+            continue
         name_lower = name.lower()
-        skip = ["overall sentiment", "top praised", "top complaints", "representative quotes",
-                "confidence level", "not enough", "yelp reviews", "business name", "review stars"]
+        skip = [
+            "overall sentiment", "top praised", "top complaints", "representative quotes",
+            "confidence level", "not enough", "yelp reviews", "business name", "review stars",
+            # sentiment / markdown heading words that the regex captures by mistake
+            "mixed", "positive", "negative", "neutral",
+            "final answer", "final output", "detailed analysis",
+            "low", "medium", "high", "based on",
+        ]
         if any(s in name_lower for s in skip):
             continue
         if source_businesses and not any(name_lower in biz for biz in source_businesses):

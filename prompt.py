@@ -84,10 +84,12 @@ OUTPUT FORMAT (you must follow this structure exactly):
 - [complaint 2]: brief explanation with evidence from reviews
 - [complaint 3]: brief explanation with evidence from reviews
 
-## Representative Quotes - take verbatim from Content: section of each review
-1. "[exact verbatim quote from a review]" — (Business: [name], Stars: [N])
-2. "[exact verbatim quote from a review]" — (Business: [name], Stars: [N])
-3. "[exact verbatim quote from a review]" — (Business: [name], Stars: [N])
+## Representative Quotes - copy word-for-word from the Content: field of actual reviews
+1. "the pizza was absolutely incredible, best i have had in years" — (Business: Joe's Pizzeria, Stars: 5)
+2. "waited 45 minutes for cold food and the server never came back to check on us" — (Business: Downtown Diner, Stars: 1)
+3. "decent tacos but nothing special, the salsa was too mild for my taste" — (Business: Taco Town, Stars: 3)
+
+CRITICAL: The quotes above are EXAMPLES OF FORMAT ONLY. You MUST replace them with actual text copied directly from the Content: fields in the provided reviews. NEVER output placeholder text such as "[exact verbatim quote]" or "[quote here]". If you cannot find a suitable quote, write: "Not enough data."
 
 ## Confidence Level
 [low / medium / high] — based on the number and consistency of reviews analyzed\
@@ -185,6 +187,15 @@ Please summarize the following Yelp reviews:
             outputs[0, inputs["input_ids"].shape[1]:], 
             skip_special_tokens=True
         ).strip()
+
+    # --- Warn if model echoed back the format placeholder instead of real quotes ---
+    _PLACEHOLDER_SIGNAL = "[exact verbatim quote"
+    if _PLACEHOLDER_SIGNAL.lower() in response.lower():
+        print(
+            "[WARNING] summarize_reviews: output contains placeholder text "
+            f"('{_PLACEHOLDER_SIGNAL}...'). The model did not extract real quotes from the reviews."
+        )
+
     return response
 
 
