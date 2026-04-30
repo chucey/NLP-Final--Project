@@ -319,7 +319,10 @@ SCORING RUBRIC:
    - 5: All quotes are verbatim from the reviews
    - 1: All quotes are fabricated / no quotes provided
 
-You MUST respond ONLY with a valid JSON object in exactly this format (no markdown, no extra text):
+You MUST respond ONLY with a valid JSON object in exactly this format.
+Do NOT wrap your response in ```json``` or any markdown code block.
+Do NOT add any text before or after the JSON object.
+Output the raw JSON directly:
 {
     "faithfulness": {"score": <1-5>, "justification": "<brief reason>"},
     "completeness": {"score": <1-5>, "justification": "<brief reason>"},
@@ -373,6 +376,12 @@ def llm_judge_evaluate(summary: str, source_reviews: str, api_key: str,
 
         response_text = response.text.strip()
 
+        # Strip markdown code fences if present (e.g. ```json ... ```)
+        fence_match = re.search(r'```(?:json)?\s*([\s\S]+?)\s*```', response_text)
+        if fence_match:
+            response_text = fence_match.group(1).strip()
+
+        # Extract the JSON object from the (possibly cleaned) response
         json_match = re.search(r'\{[\s\S]*\}', response_text)
         if json_match:
             result = json.loads(json_match.group())
