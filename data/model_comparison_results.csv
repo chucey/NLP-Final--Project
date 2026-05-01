@@ -1,0 +1,4 @@
+Model,Gen Time (s),Summary Len,Auto Score,Format,Quotes,Coverage,No Halluc.,Judge Score,J-Faith,J-Compl,J-Coher,J-Relev,J-Quote
+Qwen3-0.6B,13.0,1302,0.35,1.0,0.0,0.35,0.25,3.0,2,2,4,3,4
+Qwen3-1.7B,15.6,1423,0.54,1.0,0.0,0.35,1.0,3.0,2,3,5,4,1
+Qwen3-4B,28.4,1995,0.71,1.0,0.57,0.35,1.0,4.0,3,4,5,5,3

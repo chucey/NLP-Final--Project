@@ -1,0 +1,10 @@
+Test Case,Gen Time (s),Summary Len,Source Len,Auto Score,Format,Quotes,Coverage,No Halluc.,Judge Score,J-Faith,J-Compl,J-Coher,J-Relev,J-Quote
+Italian Restaurants (General),38.1,2748,45177,0.66,1.0,0.5,0.47,0.75,3.6,2,4,5,4,3
+Mexican Restaurants,35.4,2759,43438,0.7,1.0,0.5,0.67,0.75,3.2,2,3,5,4,2
+Coffee Shops,49.0,3663,41815,0.54,1.0,0.0,0.6,0.75,3.6,3,4,5,4,2
+1-Star Reviews Only,46.7,3295,51842,0.52,1.0,0.13,0.38,0.75,4.0,3,4,5,4,4
+5-Star Reviews Only,30.7,2239,40172,0.41,1.0,0.25,0.53,0.0,2.6,2,3,5,2,1
+High-Rated Italian in Nashville,39.9,3047,41640,0.63,1.0,0.5,0.62,0.5,4.8,4,5,5,5,5
+Low-Rated Breakfast in New Orleans,41.6,2943,48917,0.62,1.0,0.5,0.6,0.5,4.2,3,4,5,5,4
+Sushi in Tampa (All Stars),35.3,2704,41896,0.7,1.0,0.5,0.41,1.0,3.0,2,3,5,4,1
+No Results (Fake Business),0.0,40,17,0.34,0.0,0.5,0.0,0.75,4.2,5,5,5,5,1
